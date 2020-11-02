@@ -1,38 +1,473 @@
-{% extends '_layout.swig' %}
-{% import '_macro/post.swig' as post_template %}
-{% import '_macro/sidebar.swig' as sidebar_template %}
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
 
 
-{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
 
-{% block page_class %}page-post-detail{% endblock %}
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本文会尝试解释 go runtime 中 channel 和 select 的具体实现，部分内容来自 gophercon2017。Go版本为1.8.3">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go语言channel与select原理">
+<meta property="og:url" content="http://localhost:4000/2017/08/23/channel-and-select/index.html">
+<meta property="og:site_name" content="孤独的小黑屋">
+<meta property="og:description" content="本文会尝试解释 go runtime 中 channel 和 select 的具体实现，部分内容来自 gophercon2017。Go版本为1.8.3">
+<meta property="og:locale">
+<meta property="article:published_time" content="2017-08-23T06:25:34.000Z">
+<meta property="article:modified_time" content="2019-01-10T06:30:49.251Z">
+<meta property="article:author" content="一堆好人卡">
+<meta property="article:tag" content="golang">
+<meta property="article:tag" content="channel">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://localhost:4000/2017/08/23/channel-and-select/">
 
 
-{% block content %}
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
 
-  <div id="posts" class="posts-expand">
-    {{ post_template.render(page) }}
+  <title>Go语言channel与select原理 | 孤独的小黑屋</title>
+  
 
-    <div class="post-spread">
-      {% if theme.jiathis %}
-        {% include '_partials/share/jiathis.swig' %}
-      {% elseif theme.baidushare %}
-        {% include '_partials/share/baidushare.swig' %}
-      {% elseif theme.add_this_id %}
-        {% include '_partials/share/add-this.swig' %}
-      {% elseif theme.duoshuo_shortname and theme.duoshuo_share %}
-        {% include '_partials/share/duoshuo_share.swig' %}
-      {% endif %}
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
     </div>
   </div>
 
-{% endblock %}
+  <div class="site-meta">
 
-{% block sidebar %}
-  {{ sidebar_template.render(true) }}
-{% endblock %}
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">孤独的小黑屋</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Gopher & linuxer, 关注基础架构，分布式，高并发，高可用。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
 
 
-{% block script_extra %}
-  {% include '_scripts/pages/post-details.swig' %}
-{% endblock %}
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2017/08/23/channel-and-select/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="一堆好人卡">
+      <meta itemprop="description" content="Gopher & linuxer">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孤独的小黑屋">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go语言channel与select原理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-08-23 14:25:34" itemprop="dateCreated datePublished" datetime="2017-08-23T14:25:34+08:00">2017-08-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-01-10 14:30:49" itemprop="dateModified" datetime="2019-01-10T14:30:49+08:00">2019-01-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/tech/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本文会尝试解释 go runtime 中 channel 和 select 的具体实现，部分内容来自 gophercon2017。Go版本为1.8.3</p>
+</blockquote>
+<a id="more"></a>
+
+<h1 id="channel"><a href="#channel" class="headerlink" title="channel"></a>channel</h1><p>第一部分讲述一下 channel 的用法。channel 可以看做一个队列，用于多个goroutine之间的通信，例如下面的例子，一个goroutine发送msg，另一个msg接受消息。channel 分为带缓冲和不带缓冲，差别不是很大，具体请自行google。看一个简单的例子，了解一下channel的使用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Create a new channel with `make(chan val-type)`.</span></span><br><span class="line">    <span class="comment">// Channels are typed by the values they convey.</span></span><br><span class="line">    messages := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>)</span><br><span class="line">    <span class="comment">// Send a value into a channel using the `channel &lt;-`</span></span><br><span class="line">    <span class="comment">// syntax. Here we send `&quot;ping&quot;`  to the `messages`</span></span><br><span class="line">    <span class="comment">// channel we made above, from a new goroutine.</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; messages &lt;- <span class="string">&quot;ping&quot;</span> &#125;()</span><br><span class="line">    <span class="comment">// The `&lt;-channel` syntax receives a value from the</span></span><br><span class="line">    <span class="comment">// channel. Here we&#x27;ll receive the `&quot;ping&quot;` message</span></span><br><span class="line">    <span class="comment">// we sent above and print it out.</span></span><br><span class="line">    msg := &lt;-messages</span><br><span class="line">    fmt.Println(msg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>channel的功能点：</p>
+<ol>
+<li>队列</li>
+<li>阻塞</li>
+<li>当一端阻塞，可以被另一个端唤醒</li>
+</ol>
+<p>我们围绕这3点功能展开，讲讲具体的实现。</p>
+<h2 id="channel结构"><a href="#channel结构" class="headerlink" title="channel结构"></a>channel结构</h2><p>注释标注了几个重要的变量，从功能上大致可以分为两个功能单元，一个是 ring buffer，用于存数据； 一个是存放 goroutine 的队列。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> hchan <span class="keyword">struct</span> &#123;</span><br><span class="line">	qcount   <span class="keyword">uint</span>           <span class="comment">// 当前队列中的元素个数</span></span><br><span class="line">	dataqsiz <span class="keyword">uint</span>           <span class="comment">// 缓冲队列的固定大小</span></span><br><span class="line">	buf      unsafe.Pointer <span class="comment">// 缓冲数组</span></span><br><span class="line">	elemsize <span class="keyword">uint16</span></span><br><span class="line">	closed   <span class="keyword">uint32</span></span><br><span class="line">	elemtype *_type <span class="comment">// element type</span></span><br><span class="line">	sendx    <span class="keyword">uint</span>   <span class="comment">// 下一次发送的 index</span></span><br><span class="line">	recvx    <span class="keyword">uint</span>   <span class="comment">// 下一次接收的 index</span></span><br><span class="line">	recvq    waitq  <span class="comment">// 接受者队列</span></span><br><span class="line">	sendq    waitq  <span class="comment">// 发送者队列</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// lock protects all fields in hchan, as well as several</span></span><br><span class="line">	<span class="comment">// fields in sudogs blocked on this channel.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// Do not change another G&#x27;s status while holding this lock</span></span><br><span class="line">	<span class="comment">// (in particular, do not ready a G), as this can deadlock</span></span><br><span class="line">	<span class="comment">// with stack shrinking.</span></span><br><span class="line">	lock mutex</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Ring-Buffer"><a href="#Ring-Buffer" class="headerlink" title="Ring Buffer"></a>Ring Buffer</h2><p>主要是以下变量组成的功能, 一个 buf 存储实际数据，两个指针分别代表发送，接收的索引位置，配合 size, count 在数组大小范围内来回滑动。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">qcount   <span class="keyword">uint</span>           <span class="comment">// 当前队列中的元素个数</span></span><br><span class="line">dataqsiz <span class="keyword">uint</span>           <span class="comment">// 缓冲队列的固定大小</span></span><br><span class="line">buf      unsafe.Pointer <span class="comment">// 缓冲数组</span></span><br><span class="line">sendx    <span class="keyword">uint</span>   <span class="comment">// 下一次发送的 index</span></span><br><span class="line">recvx    <span class="keyword">uint</span>   <span class="comment">// 下一次接收的 index</span></span><br></pre></td></tr></table></figure>
+
+<p>举个例子，假设我们初始化了一个带缓冲的channel, <code>ch := make(chan int, 3)</code>， 那么它初始状态的值为:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">qcount   = <span class="number">0</span></span><br><span class="line">dataqsiz = <span class="number">3</span></span><br><span class="line">buf      = [<span class="number">3</span>]<span class="keyword">int</span>&#123;<span class="number">0</span>， <span class="number">0</span>， <span class="number">0</span>&#125; <span class="comment">// 表示长度为3的数组</span></span><br><span class="line">sendx    = <span class="number">0</span></span><br><span class="line">recvx    = <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<p>第一步，向 channel 里 send 一个值， <code>ch &lt;- 1</code>, 因为现在缓冲还没满，所以操作后状态如下:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">qcount   = <span class="number">1</span></span><br><span class="line">dataqsiz = <span class="number">3</span></span><br><span class="line">buf      = [<span class="number">3</span>]<span class="keyword">int</span>&#123;<span class="number">1</span>， <span class="number">0</span>， <span class="number">0</span>&#125; <span class="comment">// 表示长度为3的数组</span></span><br><span class="line">sendx    = <span class="number">1</span></span><br><span class="line">recvx    = <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<p>快进两部，连续向 channel 里 send 两个值 (2, 3)，状态如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">qcount   = <span class="number">3</span></span><br><span class="line">dataqsiz = <span class="number">3</span></span><br><span class="line">buf      = [<span class="number">3</span>]<span class="keyword">int</span>&#123;<span class="number">1</span>， <span class="number">2</span>， <span class="number">3</span>&#125; <span class="comment">// 表示长度为3的数组</span></span><br><span class="line">sendx    = <span class="number">0</span> <span class="comment">// 下一个发送的 index 回到了0</span></span><br><span class="line">recvx    = <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<p>从 channel 中 receive 一个值， <code>&lt;- ch</code>, 状态如下:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">qcount   = <span class="number">2</span></span><br><span class="line">dataqsiz = <span class="number">3</span></span><br><span class="line">buf      = [<span class="number">3</span>]<span class="keyword">int</span>&#123;<span class="number">0</span>， <span class="number">2</span>， <span class="number">3</span>&#125; <span class="comment">// 表示长度为3的数组</span></span><br><span class="line">sendx    = <span class="number">0</span> <span class="comment">// 下一个发送的 index 回到了0</span></span><br><span class="line">recvx    = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="阻塞"><a href="#阻塞" class="headerlink" title="阻塞"></a>阻塞</h2><p>我们看下，如果 receive channel 时，channel 的 buffer中没有数据是怎么处理的。逻辑在 <code>chanrecv</code> 这个方法中，它的大致流程如下，仅保留了阻塞操作的代码。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">chanrecv</span><span class="params">(t *chantype, c *hchan, ep unsafe.Pointer, block <span class="keyword">bool</span>)</span> <span class="params">(selected, received <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 检查 channdel 是否为 nil</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 当不阻塞时，检查buffer大小，当前大小，检查chennel是否关闭，看看是否能直接返回</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检查发送端是否有等待的goroutine，下部分会提到</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 当前buffer中有数据，则尝试取出。</span></span><br><span class="line">	</span><br><span class="line">    <span class="comment">// 如果非阻塞，直接返回</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 没有sender等待，buffer中没有数据，则阻塞等待。</span></span><br><span class="line">	gp := getg()</span><br><span class="line">	mysg := acquireSudog()</span><br><span class="line">	mysg.releasetime = <span class="number">0</span></span><br><span class="line">	<span class="keyword">if</span> t0 != <span class="number">0</span> &#123;</span><br><span class="line">		mysg.releasetime = <span class="number">-1</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// No stack splits between assigning elem and enqueuing mysg</span></span><br><span class="line">	<span class="comment">// on gp.waiting where copystack can find it.</span></span><br><span class="line">	mysg.elem = ep</span><br><span class="line">	mysg.waitlink = <span class="literal">nil</span></span><br><span class="line">	gp.waiting = mysg</span><br><span class="line">	mysg.g = gp</span><br><span class="line">	mysg.selectdone = <span class="literal">nil</span></span><br><span class="line">	mysg.c = c</span><br><span class="line">	gp.param = <span class="literal">nil</span></span><br><span class="line">	c.recvq.enqueue(mysg)</span><br><span class="line">    <span class="comment">//关键操作：设置 goroutine 状态为 waiting, 把 G 和 M 分离</span></span><br><span class="line">	goparkunlock(&amp;c.lock, <span class="string">&quot;chan receive&quot;</span>, traceEvGoBlockRecv, <span class="number">3</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// someone woke us up</span></span><br><span class="line">    <span class="comment">// 被唤醒，清理 sudog</span></span><br><span class="line">	<span class="keyword">if</span> mysg != gp.waiting &#123;</span><br><span class="line">		throw(<span class="string">&quot;G waiting list is corrupted&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	gp.waiting = <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">if</span> mysg.releasetime &gt; <span class="number">0</span> &#123;</span><br><span class="line">		blockevent(mysg.releasetime-t0, <span class="number">2</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	closed := gp.param == <span class="literal">nil</span></span><br><span class="line">	gp.param = <span class="literal">nil</span></span><br><span class="line">	mysg.c = <span class="literal">nil</span></span><br><span class="line">	releaseSudog(mysg)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span>, !closed</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的操作就是 创建一个 当前 goroutine 的 sudog, 然后把这个 sudog 放入 channel 的接受者等待队列；设置当前 G 的状态，和 M分离，到这里当前G就阻塞了，代码不会执行下去。<br>当被唤醒后，执行sudog的清理操作。这里接受buffer中的值的指针是 <code>ep</code> 这个变量，被唤醒后好像没有向 <code>ep</code> 中赋值的操作。这个我们下部分会讲。</p>
+<h2 id="sudog"><a href="#sudog" class="headerlink" title="sudog"></a>sudog</h2><p>还剩最后一个疑问，当一个goroutine因为channel阻塞，另一个goroutine是如何唤醒它的。</p>
+<p>channel 中有两个 <code>waitq</code> 类型的变量, 看下结构发现，就是sudog的链表，关键是 sudog。sudog中包含了goroutine的引用，注意一下 <code>elem</code>这个变量，注释说可能会指向stack。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> waitq <span class="keyword">struct</span> &#123;</span><br><span class="line">	first *sudog</span><br><span class="line">	last  *sudog</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> sudog <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// The following fields are protected by the hchan.lock of the</span></span><br><span class="line">	<span class="comment">// channel this sudog is blocking on. shrinkstack depends on</span></span><br><span class="line">	<span class="comment">// this.</span></span><br><span class="line">	g          *g</span><br><span class="line">	selectdone *<span class="keyword">uint32</span> <span class="comment">// CAS to 1 to win select race (may point to stack)</span></span><br><span class="line">	next       *sudog</span><br><span class="line">	prev       *sudog</span><br><span class="line">	elem       unsafe.Pointer <span class="comment">// data element (may point to stack)</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The following fields are never accessed concurrently.</span></span><br><span class="line">	<span class="comment">// waitlink is only accessed by g.</span></span><br><span class="line"></span><br><span class="line">	acquiretime <span class="keyword">int64</span></span><br><span class="line">	releasetime <span class="keyword">int64</span></span><br><span class="line">	ticket      <span class="keyword">uint32</span></span><br><span class="line">	waitlink    *sudog <span class="comment">// g.waiting list</span></span><br><span class="line">	c           *hchan <span class="comment">// channel</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>讲阻塞部分的时候，我们看到goroutine被调度之前，有一个 <code>enqueue</code>操作，这时，当前G的sudog已经被存入<code>recvq</code>中，我们看下发送者这时的操作。</p>
+<p>这里的操作是，sender发送的值 直接被拷贝到 sudog.elem 了。然后唤醒 sudog.g ，这样对面的receiver goroutine 就被唤醒了。具体请下面的注释。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">chansend</span><span class="params">(t *chantype, c *hchan, ep unsafe.Pointer, block <span class="keyword">bool</span>, callerpc <span class="keyword">uintptr</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="comment">// 检查工作</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果能从 chennel 的 recvq 弹出 sudog, 那么直接send</span></span><br><span class="line">	<span class="keyword">if</span> sg := c.recvq.dequeue(); sg != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// Found a waiting receiver. We pass the value we want to send</span></span><br><span class="line">		<span class="comment">// directly to the receiver, bypassing the channel buffer (if any).</span></span><br><span class="line">		send(c, sg, ep, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; unlock(&amp;c.lock) &#125;)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// buffer有空余空间，返回； 阻塞操作</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">send</span><span class="params">(c *hchan, sg *sudog, ep unsafe.Pointer, unlockf <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="comment">// 处理 index</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 关键</span></span><br><span class="line">	<span class="keyword">if</span> sg.elem != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// 这里是根据 elemtype.size 复制内存</span></span><br><span class="line">		sendDirect(c.elemtype, sg, ep)</span><br><span class="line">		sg.elem = <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 一些处理</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 重新设置 goroutine 的状态，唤醒它</span></span><br><span class="line">	goready(gp, <span class="number">4</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sendDirect</span><span class="params">(t *_type, sg *sudog, src unsafe.Pointer)</span></span> &#123;</span><br><span class="line">	<span class="comment">// src is on our stack, dst is a slot on another stack.</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Once we read sg.elem out of sg, it will no longer</span></span><br><span class="line">	<span class="comment">// be updated if the destination&#x27;s stack gets copied (shrunk).</span></span><br><span class="line">	<span class="comment">// So make sure that no preemption points can happen between read &amp; use.</span></span><br><span class="line">	dst := sg.elem</span><br><span class="line">	typeBitsBulkBarrier(t, <span class="keyword">uintptr</span>(dst), <span class="keyword">uintptr</span>(src), t.size)</span><br><span class="line">	memmove(dst, src, t.size)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// memmove copies n bytes from &quot;from&quot; to &quot;to&quot;.</span></span><br><span class="line"><span class="comment">// in memmove_*.s</span></span><br><span class="line"><span class="comment">//go:noescape</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">memmove</span><span class="params">(to, from unsafe.Pointer, n <span class="keyword">uintptr</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<h1 id="select"><a href="#select" class="headerlink" title="select"></a>select</h1><p>在看 <code>chanrecv()</code>方法 时，发现了一个 block 参数，代表操作是否阻塞。一般情况下，channel 都是阻塞的（不考虑buffer），那什么时候非阻塞呢？</p>
+<p>第一个想到的就是 select, 在写了default case的时候，其他的channel是非阻塞的。</p>
+<p>还有一个可能不常用，就是 channel 的反射 value, 可以是非阻塞的，这个方法是public的，我们先看下简单的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span> <span class="title">TryRecv</span><span class="params">()</span> <span class="params">(x Value, ok <span class="keyword">bool</span>)</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span> <span class="title">TrySend</span><span class="params">(x Value)</span> <span class="title">bool</span></span></span><br></pre></td></tr></table></figure>
+
+<p>select 就复杂一点点，首先在源码中发现一段注释:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// compiler implements</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	select &#123;</span></span><br><span class="line"><span class="comment">//	case c &lt;- v:</span></span><br><span class="line"><span class="comment">//		... foo</span></span><br><span class="line"><span class="comment">//	default:</span></span><br><span class="line"><span class="comment">//		... bar</span></span><br><span class="line"><span class="comment">//	&#125;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// as</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	if selectnbsend(c, v) &#123;</span></span><br><span class="line"><span class="comment">//		... foo</span></span><br><span class="line"><span class="comment">//	&#125; else &#123;</span></span><br><span class="line"><span class="comment">//		... bar</span></span><br><span class="line"><span class="comment">//	&#125;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">selectnbsend</span><span class="params">(t *chantype, c *hchan, elem unsafe.Pointer)</span> <span class="params">(selected <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> chansend(t, c, elem, <span class="literal">false</span>, getcallerpc(unsafe.Pointer(&amp;t)))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// compiler implements</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	select &#123;</span></span><br><span class="line"><span class="comment">//	case v = &lt;-c:</span></span><br><span class="line"><span class="comment">//		... foo</span></span><br><span class="line"><span class="comment">//	default:</span></span><br><span class="line"><span class="comment">//		... bar</span></span><br><span class="line"><span class="comment">//	&#125;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// as</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	if selectnbrecv(&amp;v, c) &#123;</span></span><br><span class="line"><span class="comment">//		... foo</span></span><br><span class="line"><span class="comment">//	&#125; else &#123;</span></span><br><span class="line"><span class="comment">//		... bar</span></span><br><span class="line"><span class="comment">//	&#125;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">selectnbrecv</span><span class="params">(t *chantype, elem unsafe.Pointer, c *hchan)</span> <span class="params">(selected <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	selected, _ = chanrecv(t, c, elem, <span class="literal">false</span>)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果是一个 case + default 的模式，那么编译器就调用以上方法来实现。</p>
+<p>如果是多个 case + default 的模式呢？select 在runtime到底是如何执行的？写个简单的select编译一下。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> ch <span class="keyword">chan</span> <span class="keyword">int</span></span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> &lt;-ch:</span><br><span class="line">	<span class="keyword">case</span> ch &lt;- <span class="number">1</span>:</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>go tool compile -S -l -N test.go &gt; test.s</code> 结果中找一下关键字，例如:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">0x008c 00140 (test.go:5)	CALL	runtime.newselect(SB)</span><br><span class="line">0x00ad 00173 (test.go:6)	CALL	runtime.selectrecv(SB)</span><br><span class="line">0x00ec 00236 (test.go:7)	CALL	runtime.selectsend(SB)</span><br><span class="line">0x0107 00263 (test.go:8)	CALL	runtime.selectdefault(SB)</span><br><span class="line">0x0122 00290 (test.go:5)	CALL	runtime.selectgo(SB)</span><br></pre></td></tr></table></figure>
+
+<p>这里 <code>selectgo</code> 是实际运行的方法，找一下，注意注释。先检查channel是否能操作，如果不能操作，就走 default 逻辑。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">loop:</span><br><span class="line">	<span class="comment">// pass 1 - look for something already waiting</span></span><br><span class="line">	<span class="keyword">var</span> dfl *scase</span><br><span class="line">	<span class="keyword">var</span> cas *scase</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="keyword">int</span>(sel.ncase); i++ &#123;</span><br><span class="line">		cas = &amp;scases[pollorder[i]]</span><br><span class="line">		c = cas.c</span><br><span class="line"></span><br><span class="line">		<span class="keyword">switch</span> cas.kind &#123;</span><br><span class="line">        <span class="comment">// 接受数据</span></span><br><span class="line">		<span class="keyword">case</span> caseRecv:</span><br><span class="line">			sg = c.sendq.dequeue()</span><br><span class="line">            <span class="comment">// 如果有 sender 在等待</span></span><br><span class="line">			<span class="keyword">if</span> sg != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> recv</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">// 当前buffer中有数据</span></span><br><span class="line">			<span class="keyword">if</span> c.qcount &gt; <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> bufrecv</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">// 关闭的channel</span></span><br><span class="line">			<span class="keyword">if</span> c.closed != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> rclose</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> caseSend:</span><br><span class="line">			<span class="keyword">if</span> raceenabled &#123;</span><br><span class="line">				racereadpc(unsafe.Pointer(c), cas.pc, chansendpc)</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">// 关闭</span></span><br><span class="line">			<span class="keyword">if</span> c.closed != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> sclose</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">// 有 receiver 正在等待</span></span><br><span class="line">			sg = c.recvq.dequeue()</span><br><span class="line">			<span class="keyword">if</span> sg != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> send</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">// 有空间接受</span></span><br><span class="line">			<span class="keyword">if</span> c.qcount &lt; c.dataqsiz &#123;</span><br><span class="line">				<span class="keyword">goto</span> bufsend</span><br><span class="line">			&#125;</span><br><span class="line">        <span class="comment">// 走default</span></span><br><span class="line">		<span class="keyword">case</span> caseDefault:</span><br><span class="line">			dfl = cas</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> dfl != <span class="literal">nil</span> &#123;</span><br><span class="line">		selunlock(scases, lockorder)</span><br><span class="line">		cas = dfl</span><br><span class="line">		<span class="keyword">goto</span> retc</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+              <a href="/tags/channel/" rel="tag"># channel</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2017/08/12/golang-and-syscalls/" rel="prev" title="Golang 与系统调用">
+      <i class="fa fa-chevron-left"></i> Golang 与系统调用
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2017/09/02/go-asm/" rel="next" title="Go Assembly 学习笔记">
+      Go Assembly 学习笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#channel"><span class="nav-number">1.</span> <span class="nav-text">channel</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#channel%E7%BB%93%E6%9E%84"><span class="nav-number">1.1.</span> <span class="nav-text">channel结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Ring-Buffer"><span class="nav-number">1.2.</span> <span class="nav-text">Ring Buffer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%98%BB%E5%A1%9E"><span class="nav-number">1.3.</span> <span class="nav-text">阻塞</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sudog"><span class="nav-number">1.4.</span> <span class="nav-text">sudog</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#select"><span class="nav-number">2.</span> <span class="nav-text">select</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">一堆好人卡</p>
+  <div class="site-description" itemprop="description">Gopher & linuxer</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">一堆好人卡</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

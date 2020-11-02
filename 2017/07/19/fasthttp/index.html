@@ -1,38 +1,461 @@
-{% extends '_layout.swig' %}
-{% import '_macro/post.swig' as post_template %}
-{% import '_macro/sidebar.swig' as sidebar_template %}
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
 
 
-{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
 
-{% block page_class %}page-post-detail{% endblock %}
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"localhost","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="协程池可以控制并行度，复用协程。fasthttp 比 net&#x2F;http 效率高很多倍的重要原因，就是利用了协程池。实现并不复杂，我们可以参考他的设计，写出高性能的应用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fasthttp中的协程池实现">
+<meta property="og:url" content="http://localhost:4000/2017/07/19/fasthttp/index.html">
+<meta property="og:site_name" content="孤独的小黑屋">
+<meta property="og:description" content="协程池可以控制并行度，复用协程。fasthttp 比 net&#x2F;http 效率高很多倍的重要原因，就是利用了协程池。实现并不复杂，我们可以参考他的设计，写出高性能的应用。">
+<meta property="og:locale">
+<meta property="article:published_time" content="2017-07-19T05:24:43.000Z">
+<meta property="article:modified_time" content="2019-01-10T06:30:49.251Z">
+<meta property="article:author" content="一堆好人卡">
+<meta property="article:tag" content="golang">
+<meta property="article:tag" content="goroutine">
+<meta property="article:tag" content="web">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://localhost:4000/2017/07/19/fasthttp/">
 
 
-{% block content %}
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-Hans'
+  };
+</script>
 
-  <div id="posts" class="posts-expand">
-    {{ post_template.render(page) }}
+  <title>fasthttp中的协程池实现 | 孤独的小黑屋</title>
+  
 
-    <div class="post-spread">
-      {% if theme.jiathis %}
-        {% include '_partials/share/jiathis.swig' %}
-      {% elseif theme.baidushare %}
-        {% include '_partials/share/baidushare.swig' %}
-      {% elseif theme.add_this_id %}
-        {% include '_partials/share/add-this.swig' %}
-      {% elseif theme.duoshuo_shortname and theme.duoshuo_share %}
-        {% include '_partials/share/duoshuo_share.swig' %}
-      {% endif %}
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
     </div>
   </div>
 
-{% endblock %}
+  <div class="site-meta">
 
-{% block sidebar %}
-  {{ sidebar_template.render(true) }}
-{% endblock %}
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">孤独的小黑屋</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Gopher & linuxer, 关注基础架构，分布式，高并发，高可用。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
 
 
-{% block script_extra %}
-  {% include '_scripts/pages/post-details.swig' %}
-{% endblock %}
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://localhost:4000/2017/07/19/fasthttp/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="一堆好人卡">
+      <meta itemprop="description" content="Gopher & linuxer">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="孤独的小黑屋">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          fasthttp中的协程池实现
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2017-07-19 13:24:43" itemprop="dateCreated datePublished" datetime="2017-07-19T13:24:43+08:00">2017-07-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2019-01-10 14:30:49" itemprop="dateModified" datetime="2019-01-10T14:30:49+08:00">2019-01-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/tech/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>协程池可以控制并行度，复用协程。fasthttp 比 net/http 效率高很多倍的重要原因，就是利用了协程池。实现并不复杂，我们可以参考他的设计，写出高性能的应用。</p>
+</blockquote>
+<a id="more"></a>
+
+<h2 id="入口"><a href="#入口" class="headerlink" title="入口"></a>入口</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// server.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">Serve</span><span class="params">(ln net.Listener)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> lastOverflowErrorTime time.Time</span><br><span class="line">    <span class="keyword">var</span> lastPerIPErrorTime time.Time</span><br><span class="line">    <span class="keyword">var</span> c net.Conn</span><br><span class="line">    <span class="keyword">var</span> err error</span><br><span class="line"></span><br><span class="line">    maxWorkersCount := s.getConcurrency()</span><br><span class="line">    s.concurrencyCh = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, maxWorkersCount)</span><br><span class="line">    wp := &amp;workerPool&#123;</span><br><span class="line">        WorkerFunc:      s.serveConn,</span><br><span class="line">        MaxWorkersCount: maxWorkersCount,</span><br><span class="line">        LogAllErrors:    s.LogAllErrors,</span><br><span class="line">        Logger:          s.logger(),</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// break-00</span></span><br><span class="line">    wp.Start()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// break-02</span></span><br><span class="line">        <span class="keyword">if</span> c, err = acceptConn(s, ln, &amp;lastPerIPErrorTime); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            wp.Stop()</span><br><span class="line">            <span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// break-03</span></span><br><span class="line">        <span class="keyword">if</span> !wp.Serve(c) &#123;</span><br><span class="line">            s.writeFastError(c, StatusServiceUnavailable,</span><br><span class="line">                <span class="string">&quot;The connection cannot be served because Server.Concurrency limit exceeded&quot;</span>)</span><br><span class="line">            c.Close()</span><br><span class="line">            <span class="keyword">if</span> time.Since(lastOverflowErrorTime) &gt; time.Minute &#123;</span><br><span class="line">                s.logger().Printf(<span class="string">&quot;The incoming connection cannot be served, because %d concurrent connections are served. &quot;</span>+</span><br><span class="line">                    <span class="string">&quot;Try increasing Server.Concurrency&quot;</span>, maxWorkersCount)</span><br><span class="line">                lastOverflowErrorTime = CoarseTimeNow()</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// The current server reached concurrency limit,</span></span><br><span class="line">            <span class="comment">// so give other concurrently running servers a chance</span></span><br><span class="line">            <span class="comment">// accepting incoming connections on the same address.</span></span><br><span class="line">            <span class="comment">//</span></span><br><span class="line">            <span class="comment">// There is a hope other servers didn&#x27;t reach their</span></span><br><span class="line">            <span class="comment">// concurrency limits yet :)</span></span><br><span class="line">            time.Sleep(<span class="number">100</span> * time.Millisecond)</span><br><span class="line">        &#125;</span><br><span class="line">        c = <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 有必要了解一下 workerPool 的结构</span></span><br><span class="line"><span class="keyword">type</span> workerPool <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// Function for serving server connections.</span></span><br><span class="line">    <span class="comment">// It must leave c unclosed.</span></span><br><span class="line">    WorkerFunc <span class="function"><span class="keyword">func</span><span class="params">(c net.Conn)</span> <span class="title">error</span></span></span><br><span class="line"></span><br><span class="line">    MaxWorkersCount <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line">    LogAllErrors <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">    MaxIdleWorkerDuration time.Duration</span><br><span class="line"></span><br><span class="line">    Logger Logger</span><br><span class="line"></span><br><span class="line">    lock         sync.Mutex</span><br><span class="line">    workersCount <span class="keyword">int</span></span><br><span class="line">    mustStop     <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">    ready []*workerChan</span><br><span class="line"></span><br><span class="line">    stopCh <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    workerChanPool sync.Pool</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>goroutine status:</p>
+<ol>
+<li>main0: wp.Start()</li>
+</ol>
+<h2 id="break-00"><a href="#break-00" class="headerlink" title="break-00"></a>break-00</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// workerpool.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 启动一个 goroutine， 每隔一段时间，清理一下 []*workerChan; </span></span><br><span class="line"><span class="comment">// wp.clean() 的操作是 查看最近使用的workerChan, 如果他的最近使用间隔大于某个值，那么把这个workerChan清理了。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wp *workerPool)</span> <span class="title">Start</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> wp.stopCh != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="built_in">panic</span>(<span class="string">&quot;BUG: workerPool already started&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    wp.stopCh = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">    stopCh := wp.stopCh</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        <span class="keyword">var</span> scratch []*workerChan</span><br><span class="line">        <span class="keyword">for</span> &#123;</span><br><span class="line">            <span class="comment">// break-01</span></span><br><span class="line">            wp.clean(&amp;scratch)</span><br><span class="line">            <span class="keyword">select</span> &#123;</span><br><span class="line">            <span class="keyword">case</span> &lt;-stopCh:</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            <span class="keyword">default</span>:</span><br><span class="line">                time.Sleep(wp.getMaxIdleWorkerDuration())</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>goroutine status:</p>
+<ol>
+<li>main0: wp.Start()</li>
+<li>g1: for loop to clean idle workerChan</li>
+</ol>
+<h2 id="break-01"><a href="#break-01" class="headerlink" title="break-01"></a>break-01</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wp *workerPool)</span> <span class="title">clean</span><span class="params">(scratch *[]*workerChan)</span></span> &#123;</span><br><span class="line">    maxIdleWorkerDuration := wp.getMaxIdleWorkerDuration()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Clean least recently used workers if they didn&#x27;t serve connections</span></span><br><span class="line">    <span class="comment">// for more than maxIdleWorkerDuration.</span></span><br><span class="line">    currentTime := time.Now()</span><br><span class="line"></span><br><span class="line">    wp.lock.Lock()</span><br><span class="line">    ready := wp.ready</span><br><span class="line">    n := <span class="built_in">len</span>(ready)</span><br><span class="line">    i := <span class="number">0</span></span><br><span class="line">    <span class="comment">// 这里从队列头部取出超过 最大空闲时间 的workerChan。</span></span><br><span class="line">    <span class="comment">// 可以看出，最后使用的workerChan 一定是放回队列尾部的。</span></span><br><span class="line">    <span class="keyword">for</span> i &lt; n &amp;&amp; currentTime.Sub(ready[i].lastUseTime) &gt; maxIdleWorkerDuration &#123;</span><br><span class="line">        i++</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 把空闲的放入 scratch, 剩余的放回 ready</span></span><br><span class="line">    *scratch = <span class="built_in">append</span>((*scratch)[:<span class="number">0</span>], ready[:i]...)</span><br><span class="line">    <span class="keyword">if</span> i &gt; <span class="number">0</span> &#123;</span><br><span class="line">        m := <span class="built_in">copy</span>(ready, ready[i:])</span><br><span class="line">        <span class="keyword">for</span> i = m; i &lt; n; i++ &#123;</span><br><span class="line">            ready[i] = <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">        wp.ready = ready[:m]</span><br><span class="line">    &#125;</span><br><span class="line">    wp.lock.Unlock()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Notify obsolete workers to stop.</span></span><br><span class="line">    <span class="comment">// This notification must be outside the wp.lock, since ch.ch</span></span><br><span class="line">    <span class="comment">// may be blocking and may consume a lot of time if many workers</span></span><br><span class="line">    <span class="comment">// are located on non-local CPUs.</span></span><br><span class="line">    tmp := *scratch</span><br><span class="line">    <span class="comment">// 销毁的操作就是向 chan net.Conn 中塞入一个 nil, 后面会看到解释</span></span><br><span class="line">    <span class="keyword">for</span> i, ch := <span class="keyword">range</span> tmp &#123;</span><br><span class="line">        ch.ch &lt;- <span class="literal">nil</span></span><br><span class="line">        tmp[i] = <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="break-02"><a href="#break-02" class="headerlink" title="break-02"></a>break-02</h2><p><code>acceptConn(s, ln, &amp;lastPerIPErrorTime)</code> 主要处理 ln.Accept()，判断err是否是 Temporary 的，最终返回一个 net.Conn</p>
+<h2 id="break-03"><a href="#break-03" class="headerlink" title="break-03"></a>break-03</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// workerpool.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wp *workerPool)</span> <span class="title">Serve</span><span class="params">(c net.Conn)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="comment">// break-04</span></span><br><span class="line">    ch := wp.getCh()</span><br><span class="line">    <span class="keyword">if</span> ch == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">    ch.ch &lt;- c</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> workerChan <span class="keyword">struct</span> &#123;</span><br><span class="line">    lastUseTime time.Time</span><br><span class="line">    ch          <span class="keyword">chan</span> net.Conn</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>wp.getCh() 返回一个 *workerChan, 可以看到， workerChan 有一个 ch 属性，参数传入的 net.Conn 直接往里面塞。</p>
+<h2 id="break-04"><a href="#break-04" class="headerlink" title="break-04"></a>break-04</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// workerpool.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wp *workerPool)</span> <span class="title">getCh</span><span class="params">()</span> *<span class="title">workerChan</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> ch *workerChan</span><br><span class="line">    createWorker := <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">    wp.lock.Lock()</span><br><span class="line">    ready := wp.ready</span><br><span class="line">    n := <span class="built_in">len</span>(ready) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">if</span> n &lt; <span class="number">0</span> &#123;</span><br><span class="line">        <span class="comment">// ready 为空，并且总数小于 MaxWorkersCount，那么需要创建新的 workerChan</span></span><br><span class="line">        <span class="keyword">if</span> wp.workersCount &lt; wp.MaxWorkersCount &#123;</span><br><span class="line">            createWorker = <span class="literal">true</span></span><br><span class="line">            wp.workersCount++</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 从队列尾部取出一个 workerChan</span></span><br><span class="line">        ch = ready[n]</span><br><span class="line">        ready[n] = <span class="literal">nil</span></span><br><span class="line">        wp.ready = ready[:n]</span><br><span class="line">    &#125;</span><br><span class="line">    wp.lock.Unlock()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ch == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> !createWorker &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 走入创建流程，从 Pool中取出 workerChan</span></span><br><span class="line">        vch := wp.workerChanPool.Get()</span><br><span class="line">        <span class="keyword">if</span> vch == <span class="literal">nil</span> &#123;</span><br><span class="line">            vch = &amp;workerChan&#123;</span><br><span class="line">                ch: <span class="built_in">make</span>(<span class="keyword">chan</span> net.Conn, workerChanCap),</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        ch = vch.(*workerChan)</span><br><span class="line">        <span class="comment">// 创建goroutine处理请求，接收一个 chan *workerChan 作为参数</span></span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">            <span class="comment">// break-05</span></span><br><span class="line">            wp.workerFunc(ch)</span><br><span class="line">            wp.workerChanPool.Put(vch)</span><br><span class="line">        &#125;()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ch</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里我们只看创建的流程。如果ready为空，说明ready被耗尽，并且小于 MaxWorkersCount，那么需要创建新的 workerChan。<br>创建时，先从 Pool 中取出复用，如果为nil，再创建新的。<br>可以预测到，这里 wp.workerFunc(ch) 必定包含一个 for 循环，处理 workerChan 中的 net.Conn。</p>
+<p>goroutine status:</p>
+<ol>
+<li>main0: wp.Start()</li>
+<li>g1: for loop to clean idle workerChan</li>
+<li>g2: wp.workerFunc(ch) blocks for handling connection</li>
+</ol>
+<h2 id="break-05"><a href="#break-05" class="headerlink" title="break-05"></a>break-05</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// workerpool.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wp *workerPool)</span> <span class="title">workerFunc</span><span class="params">(ch *workerChan)</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> c net.Conn</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> err error</span><br><span class="line">    <span class="keyword">for</span> c = <span class="keyword">range</span> ch.ch &#123;</span><br><span class="line">        <span class="keyword">if</span> c == <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 正真的处理请求的函数</span></span><br><span class="line">        <span class="keyword">if</span> err = wp.WorkerFunc(c); err != <span class="literal">nil</span> &amp;&amp; err != errHijacked &#123;</span><br><span class="line">            errStr := err.Error()</span><br><span class="line">            <span class="keyword">if</span> wp.LogAllErrors || !(strings.Contains(errStr, <span class="string">&quot;broken pipe&quot;</span>) ||</span><br><span class="line">                strings.Contains(errStr, <span class="string">&quot;reset by peer&quot;</span>) ||</span><br><span class="line">                strings.Contains(errStr, <span class="string">&quot;i/o timeout&quot;</span>)) &#123;</span><br><span class="line">                wp.Logger.Printf(<span class="string">&quot;error when serving connection %q&lt;-&gt;%q: %s&quot;</span>, c.LocalAddr(), c.RemoteAddr(), err)</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> err != errHijacked &#123;</span><br><span class="line">            c.Close()</span><br><span class="line">        &#125;</span><br><span class="line">        c = <span class="literal">nil</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// 释放 workerChan</span></span><br><span class="line">        <span class="comment">// break-06</span></span><br><span class="line">        <span class="keyword">if</span> !wp.release(ch) &#123;</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 跳出 for range 循环， 意味着 从chan中取得一个 nil，或者 wp.mustStop 被设为了true，这是主动停止的方法。</span></span><br><span class="line">    wp.lock.Lock()</span><br><span class="line">    wp.workersCount--</span><br><span class="line">    wp.lock.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>for range 不断从 chan net.Conn 中获取连接。大家是否还记得 在 <code>func (wp *workerPool) Serve(c net.Conn) bool</code> 函数中，一个重要操作就是把 accept 到的connection，放入 channel.<br>最后，需要把当前的 workerChan 释放回 workerPool 的 ready 中。</p>
+<h2 id="break-06"><a href="#break-06" class="headerlink" title="break-06"></a>break-06</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wp *workerPool)</span> <span class="title">release</span><span class="params">(ch *workerChan)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    ch.lastUseTime = CoarseTimeNow()</span><br><span class="line">    wp.lock.Lock()</span><br><span class="line">    <span class="keyword">if</span> wp.mustStop &#123;</span><br><span class="line">        wp.lock.Unlock()</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">    wp.ready = <span class="built_in">append</span>(wp.ready, ch)</span><br><span class="line">    wp.lock.Unlock()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>释放操作中，注意到 修改了 ch.lastUseTime ， 还记得 clean 操作吗？在 g1 协程中运行着呢。<br>所以最后的运行状态是：</p>
+<p>goroutine status:</p>
+<ol>
+<li>main0: wp.Start()</li>
+<li>g1: for loop to clean idle workerChan</li>
+<li>g2: wp.workerFunc(ch) blocks for handling connection</li>
+<li>g3: …. </li>
+<li>g4: ….</li>
+</ol>
+<p>按需增长 goroutine 数量，但是也有一个最大值, 所以并行度是可控的。当请求密集时，一个 worker goroutine 可能会串行处理多个 connection。<br>wokerChan 在 Pool 中被复用，对GC的压力会减小很多。</p>
+<p>而对比原生的 net/http 包，并行度不可控（可能不确定，runtime 会有控制? ），goroutine 不可被复用，体现在一个请求一个goroutine, 用完就销毁了，对机器压力更大。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+              <a href="/tags/goroutine/" rel="tag"># goroutine</a>
+              <a href="/tags/web/" rel="tag"># web</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2017/07/18/qiniu-image-handle/" rel="prev" title="Golang模仿七牛图片处理API">
+      <i class="fa fa-chevron-left"></i> Golang模仿七牛图片处理API
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2017/07/19/microservice-in-kubernetes/" rel="next" title="基于 Kubernetes 的微服务治理">
+      基于 Kubernetes 的微服务治理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%A5%E5%8F%A3"><span class="nav-number">1.</span> <span class="nav-text">入口</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#break-00"><span class="nav-number">2.</span> <span class="nav-text">break-00</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#break-01"><span class="nav-number">3.</span> <span class="nav-text">break-01</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#break-02"><span class="nav-number">4.</span> <span class="nav-text">break-02</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#break-03"><span class="nav-number">5.</span> <span class="nav-text">break-03</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#break-04"><span class="nav-number">6.</span> <span class="nav-text">break-04</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#break-05"><span class="nav-number">7.</span> <span class="nav-text">break-05</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#break-06"><span class="nav-number">8.</span> <span class="nav-text">break-06</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">一堆好人卡</p>
+  <div class="site-description" itemprop="description">Gopher & linuxer</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">一堆好人卡</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
