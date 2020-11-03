@@ -5,9 +5,9 @@
   <subtitle>Gopher &amp; linuxer, 关注基础架构，分布式，高并发，高可用。</subtitle>
   <link href="/atom.xml" rel="self"/>
   
-  <link href="http://localhost:4000/"/>
+  <link href="http://silentred.github.io/"/>
   <updated>2020-11-02T02:37:19.834Z</updated>
-  <id>http://localhost:4000/</id>
+  <id>http://silentred.github.io/</id>
   
   <author>
     <name>NightsWatch</name>
@@ -18,8 +18,8 @@
   
   <entry>
     <title>Percolator 学习笔记</title>
-    <link href="http://localhost:4000/2019/03/16/percolator/"/>
-    <id>http://localhost:4000/2019/03/16/percolator/</id>
+    <link href="http://silentred.github.io/2019/03/16/percolator/"/>
+    <id>http://silentred.github.io/2019/03/16/percolator/</id>
     <published>2019-03-16T15:04:09.000Z</published>
     <updated>2020-11-02T02:37:19.834Z</updated>
     
@@ -33,21 +33,21 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="database" scheme="http://localhost:4000/categories/tech/database/"/>
+      <category term="database" scheme="http://silentred.github.io/categories/tech/database/"/>
     
     
-      <category term="database" scheme="http://localhost:4000/tags/database/"/>
+      <category term="database" scheme="http://silentred.github.io/tags/database/"/>
     
-      <category term="transaction" scheme="http://localhost:4000/tags/transaction/"/>
+      <category term="transaction" scheme="http://silentred.github.io/tags/transaction/"/>
     
   </entry>
   
   <entry>
     <title>改变</title>
-    <link href="http://localhost:4000/2019/01/16/new-age/"/>
-    <id>http://localhost:4000/2019/01/16/new-age/</id>
+    <link href="http://silentred.github.io/2019/01/16/new-age/"/>
+    <id>http://silentred.github.io/2019/01/16/new-age/</id>
     <published>2019-01-16T03:32:00.000Z</published>
     <updated>2019-01-16T03:47:28.658Z</updated>
     
@@ -61,17 +61,17 @@
     
     </summary>
     
-      <category term="life" scheme="http://localhost:4000/categories/life/"/>
+      <category term="life" scheme="http://silentred.github.io/categories/life/"/>
     
     
-      <category term="life" scheme="http://localhost:4000/tags/life/"/>
+      <category term="life" scheme="http://silentred.github.io/tags/life/"/>
     
   </entry>
   
   <entry>
     <title>Go Assembly 学习笔记</title>
-    <link href="http://localhost:4000/2017/09/02/go-asm/"/>
-    <id>http://localhost:4000/2017/09/02/go-asm/</id>
+    <link href="http://silentred.github.io/2017/09/02/go-asm/"/>
+    <id>http://silentred.github.io/2017/09/02/go-asm/</id>
     <published>2017-09-02T07:56:48.000Z</published>
     <updated>2019-01-10T06:30:49.251Z</updated>
     
@@ -85,21 +85,21 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="golang" scheme="http://localhost:4000/categories/tech/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/categories/tech/golang/"/>
     
     
-      <category term="golang" scheme="http://localhost:4000/tags/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/tags/golang/"/>
     
-      <category term="assembly" scheme="http://localhost:4000/tags/assembly/"/>
+      <category term="assembly" scheme="http://silentred.github.io/tags/assembly/"/>
     
   </entry>
   
   <entry>
     <title>Go语言channel与select原理</title>
-    <link href="http://localhost:4000/2017/08/23/channel-and-select/"/>
-    <id>http://localhost:4000/2017/08/23/channel-and-select/</id>
+    <link href="http://silentred.github.io/2017/08/23/channel-and-select/"/>
+    <id>http://silentred.github.io/2017/08/23/channel-and-select/</id>
     <published>2017-08-23T06:25:34.000Z</published>
     <updated>2019-01-10T06:30:49.251Z</updated>
     
@@ -113,21 +113,21 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="golang" scheme="http://localhost:4000/categories/tech/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/categories/tech/golang/"/>
     
     
-      <category term="golang" scheme="http://localhost:4000/tags/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/tags/golang/"/>
     
-      <category term="channel" scheme="http://localhost:4000/tags/channel/"/>
+      <category term="channel" scheme="http://silentred.github.io/tags/channel/"/>
     
   </entry>
   
   <entry>
     <title>Golang 与系统调用</title>
-    <link href="http://localhost:4000/2017/08/12/golang-and-syscalls/"/>
-    <id>http://localhost:4000/2017/08/12/golang-and-syscalls/</id>
+    <link href="http://silentred.github.io/2017/08/12/golang-and-syscalls/"/>
+    <id>http://silentred.github.io/2017/08/12/golang-and-syscalls/</id>
     <published>2017-08-12T09:04:37.000Z</published>
     <updated>2019-01-10T06:30:49.251Z</updated>
     
@@ -141,19 +141,19 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="golang" scheme="http://localhost:4000/categories/tech/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/categories/tech/golang/"/>
     
     
-      <category term="golang" scheme="http://localhost:4000/tags/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/tags/golang/"/>
     
   </entry>
   
   <entry>
     <title>MySQL 多列索引</title>
-    <link href="http://localhost:4000/2017/08/12/mysql-multi-col-index/"/>
-    <id>http://localhost:4000/2017/08/12/mysql-multi-col-index/</id>
+    <link href="http://silentred.github.io/2017/08/12/mysql-multi-col-index/"/>
+    <id>http://silentred.github.io/2017/08/12/mysql-multi-col-index/</id>
     <published>2017-08-12T07:47:05.000Z</published>
     <updated>2019-01-10T06:30:49.252Z</updated>
     
@@ -167,21 +167,21 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="mysql" scheme="http://localhost:4000/categories/tech/mysql/"/>
+      <category term="mysql" scheme="http://silentred.github.io/categories/tech/mysql/"/>
     
     
-      <category term="mysql" scheme="http://localhost:4000/tags/mysql/"/>
+      <category term="mysql" scheme="http://silentred.github.io/tags/mysql/"/>
     
-      <category term="index" scheme="http://localhost:4000/tags/index/"/>
+      <category term="index" scheme="http://silentred.github.io/tags/index/"/>
     
   </entry>
   
   <entry>
     <title>关于程序员之道</title>
-    <link href="http://localhost:4000/2017/07/30/choose-the-right-way/"/>
-    <id>http://localhost:4000/2017/07/30/choose-the-right-way/</id>
+    <link href="http://silentred.github.io/2017/07/30/choose-the-right-way/"/>
+    <id>http://silentred.github.io/2017/07/30/choose-the-right-way/</id>
     <published>2017-07-30T06:33:49.000Z</published>
     <updated>2019-01-10T06:30:49.251Z</updated>
     
@@ -195,21 +195,21 @@
     
     </summary>
     
-      <category term="life" scheme="http://localhost:4000/categories/life/"/>
+      <category term="life" scheme="http://silentred.github.io/categories/life/"/>
     
-      <category term="thinking" scheme="http://localhost:4000/categories/life/thinking/"/>
+      <category term="thinking" scheme="http://silentred.github.io/categories/life/thinking/"/>
     
     
-      <category term="life" scheme="http://localhost:4000/tags/life/"/>
+      <category term="life" scheme="http://silentred.github.io/tags/life/"/>
     
-      <category term="programming" scheme="http://localhost:4000/tags/programming/"/>
+      <category term="programming" scheme="http://silentred.github.io/tags/programming/"/>
     
   </entry>
   
   <entry>
     <title>Java AOP, Annotation 笔记</title>
-    <link href="http://localhost:4000/2017/07/22/java-aop-annotation/"/>
-    <id>http://localhost:4000/2017/07/22/java-aop-annotation/</id>
+    <link href="http://silentred.github.io/2017/07/22/java-aop-annotation/"/>
+    <id>http://silentred.github.io/2017/07/22/java-aop-annotation/</id>
     <published>2017-07-22T06:26:02.000Z</published>
     <updated>2019-01-10T06:30:49.252Z</updated>
     
@@ -223,19 +223,19 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="java" scheme="http://localhost:4000/categories/tech/java/"/>
+      <category term="java" scheme="http://silentred.github.io/categories/tech/java/"/>
     
     
-      <category term="java" scheme="http://localhost:4000/tags/java/"/>
+      <category term="java" scheme="http://silentred.github.io/tags/java/"/>
     
   </entry>
   
   <entry>
     <title>碎碎念</title>
-    <link href="http://localhost:4000/2017/07/20/what-should-i-say/"/>
-    <id>http://localhost:4000/2017/07/20/what-should-i-say/</id>
+    <link href="http://silentred.github.io/2017/07/20/what-should-i-say/"/>
+    <id>http://silentred.github.io/2017/07/20/what-should-i-say/</id>
     <published>2017-07-20T13:36:58.000Z</published>
     <updated>2020-11-02T02:38:10.105Z</updated>
     
@@ -249,19 +249,19 @@
     
     </summary>
     
-      <category term="life" scheme="http://localhost:4000/categories/life/"/>
+      <category term="life" scheme="http://silentred.github.io/categories/life/"/>
     
-      <category term="murmur" scheme="http://localhost:4000/categories/life/murmur/"/>
+      <category term="murmur" scheme="http://silentred.github.io/categories/life/murmur/"/>
     
     
-      <category term="life" scheme="http://localhost:4000/tags/life/"/>
+      <category term="life" scheme="http://silentred.github.io/tags/life/"/>
     
   </entry>
   
   <entry>
     <title>基于 Kubernetes 的微服务治理</title>
-    <link href="http://localhost:4000/2017/07/19/microservice-in-kubernetes/"/>
-    <id>http://localhost:4000/2017/07/19/microservice-in-kubernetes/</id>
+    <link href="http://silentred.github.io/2017/07/19/microservice-in-kubernetes/"/>
+    <id>http://silentred.github.io/2017/07/19/microservice-in-kubernetes/</id>
     <published>2017-07-19T08:04:08.000Z</published>
     <updated>2019-01-10T06:30:49.252Z</updated>
     
@@ -281,23 +281,23 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="kubernetes" scheme="http://localhost:4000/categories/tech/kubernetes/"/>
+      <category term="kubernetes" scheme="http://silentred.github.io/categories/tech/kubernetes/"/>
     
     
-      <category term="microservice" scheme="http://localhost:4000/tags/microservice/"/>
+      <category term="microservice" scheme="http://silentred.github.io/tags/microservice/"/>
     
-      <category term="k8s" scheme="http://localhost:4000/tags/k8s/"/>
+      <category term="k8s" scheme="http://silentred.github.io/tags/k8s/"/>
     
-      <category term="devop" scheme="http://localhost:4000/tags/devop/"/>
+      <category term="devop" scheme="http://silentred.github.io/tags/devop/"/>
     
   </entry>
   
   <entry>
     <title>fasthttp中的协程池实现</title>
-    <link href="http://localhost:4000/2017/07/19/fasthttp/"/>
-    <id>http://localhost:4000/2017/07/19/fasthttp/</id>
+    <link href="http://silentred.github.io/2017/07/19/fasthttp/"/>
+    <id>http://silentred.github.io/2017/07/19/fasthttp/</id>
     <published>2017-07-19T05:24:43.000Z</published>
     <updated>2019-01-10T06:30:49.251Z</updated>
     
@@ -311,23 +311,23 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="golang" scheme="http://localhost:4000/categories/tech/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/categories/tech/golang/"/>
     
     
-      <category term="golang" scheme="http://localhost:4000/tags/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/tags/golang/"/>
     
-      <category term="goroutine" scheme="http://localhost:4000/tags/goroutine/"/>
+      <category term="goroutine" scheme="http://silentred.github.io/tags/goroutine/"/>
     
-      <category term="web" scheme="http://localhost:4000/tags/web/"/>
+      <category term="web" scheme="http://silentred.github.io/tags/web/"/>
     
   </entry>
   
   <entry>
     <title>Golang模仿七牛图片处理API</title>
-    <link href="http://localhost:4000/2017/07/18/qiniu-image-handle/"/>
-    <id>http://localhost:4000/2017/07/18/qiniu-image-handle/</id>
+    <link href="http://silentred.github.io/2017/07/18/qiniu-image-handle/"/>
+    <id>http://silentred.github.io/2017/07/18/qiniu-image-handle/</id>
     <published>2017-07-18T07:55:48.000Z</published>
     <updated>2019-01-10T06:30:49.252Z</updated>
     
@@ -341,14 +341,14 @@
     
     </summary>
     
-      <category term="tech" scheme="http://localhost:4000/categories/tech/"/>
+      <category term="tech" scheme="http://silentred.github.io/categories/tech/"/>
     
-      <category term="golang" scheme="http://localhost:4000/categories/tech/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/categories/tech/golang/"/>
     
     
-      <category term="golang" scheme="http://localhost:4000/tags/golang/"/>
+      <category term="golang" scheme="http://silentred.github.io/tags/golang/"/>
     
-      <category term="image" scheme="http://localhost:4000/tags/image/"/>
+      <category term="image" scheme="http://silentred.github.io/tags/image/"/>
     
   </entry>
   
