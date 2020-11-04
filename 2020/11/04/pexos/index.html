@@ -20,30 +20,35 @@
     var CONFIG = {"hostname":"silentred.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="Gopher &amp; linuxer">
-<meta property="og:type" content="website">
-<meta property="og:title" content="寒江夜钓">
-<meta property="og:url" content="http://silentred.github.io/page/2/index.html">
+  <meta name="description" content="用简单的方式描述 Pexos 协议， 本文来自于对  xp博客 的总结">
+<meta property="og:type" content="article">
+<meta property="og:title" content="简述Pexos协议">
+<meta property="og:url" content="http://silentred.github.io/2020/11/04/pexos/index.html">
 <meta property="og:site_name" content="寒江夜钓">
-<meta property="og:description" content="Gopher &amp; linuxer">
+<meta property="og:description" content="用简单的方式描述 Pexos 协议， 本文来自于对  xp博客 的总结">
 <meta property="og:locale">
+<meta property="article:published_time" content="2020-11-04T06:40:44.000Z">
+<meta property="article:modified_time" content="2020-11-04T07:00:52.833Z">
 <meta property="article:author" content="NightsWatch">
+<meta property="article:tag" content="pexos">
+<meta property="article:tag" content="raft">
+<meta property="article:tag" content="distributed-system">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://silentred.github.io/page/2/">
+<link rel="canonical" href="http://silentred.github.io/2020/11/04/pexos/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-Hans'
   };
 </script>
 
-  <title>寒江夜钓</title>
+  <title>简述Pexos协议 | 寒江夜钓</title>
   
 
 
@@ -166,13 +171,14 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="http://silentred.github.io/2017/07/19/microservice-in-kubernetes/">
+    <link itemprop="mainEntityOfPage" href="http://silentred.github.io/2020/11/04/pexos/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -184,10 +190,9 @@
       <meta itemprop="name" content="寒江夜钓">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/07/19/microservice-in-kubernetes/" class="post-title-link" itemprop="url">基于 Kubernetes 的微服务治理</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          简述Pexos协议
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -195,16 +200,10 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
+              
 
-              <time title="Created: 2017-07-19 16:04:08" itemprop="dateCreated datePublished" datetime="2017-07-19T16:04:08+08:00">2017-07-19</time>
+              <time title="Created: 2020-11-04 14:40:44 / Modified: 15:00:52" itemprop="dateCreated datePublished" datetime="2020-11-04T14:40:44+08:00">2020-11-04</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-01-10 14:30:49" itemprop="dateModified" datetime="2019-01-10T14:30:49+08:00">2019-01-10</time>
-              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -212,10 +211,6 @@
               <span class="post-meta-item-text">In</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tech/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
                 </span>
             </span>
 
@@ -228,8 +223,8 @@
       </span>
       <span class="post-meta-item-text">Disqus: </span>
     
-    <a title="disqus" href="/2017/07/19/microservice-in-kubernetes/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2017/07/19/microservice-in-kubernetes/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2020/11/04/pexos/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/11/04/pexos/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -244,249 +239,67 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>本文将介绍如何使用 kubernetes 部署微服务，包括 服务发现，监控，路由，日志。用实际的例子来演示自动化流程。主要分为以下几个部分:</p>
-<ol>
-<li>5分钟搭建 K8S 集群</li>
-<li>部署 CNI 网络</li>
-<li>部署监控服务</li>
-<li>部署网关</li>
-<li>部署日志服务</li>
-<li>部署一个应用</li>
-</ol>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/07/19/microservice-in-kubernetes/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="http://silentred.github.io/2017/07/19/fasthttp/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="NightsWatch">
-      <meta itemprop="description" content="Gopher & linuxer">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="寒江夜钓">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/07/19/fasthttp/" class="post-title-link" itemprop="url">fasthttp中的协程池实现</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-07-19 13:24:43" itemprop="dateCreated datePublished" datetime="2017-07-19T13:24:43+08:00">2017-07-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-01-10 14:30:49" itemprop="dateModified" datetime="2019-01-10T14:30:49+08:00">2019-01-10</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tech/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus: </span>
-    
-    <a title="disqus" href="/2017/07/19/fasthttp/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2017/07/19/fasthttp/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <blockquote>
-<p>协程池可以控制并行度，复用协程。fasthttp 比 net/http 效率高很多倍的重要原因，就是利用了协程池。实现并不复杂，我们可以参考他的设计，写出高性能的应用。</p>
+        <blockquote>
+<p>用简单的方式描述 Pexos 协议， 本文来自于对  <a target="_blank" rel="noopener" href="https://blog.openacid.com/algo/paxos/">xp博客</a> 的总结</p>
 </blockquote>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/07/19/fasthttp/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
+<a id="more"></a>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="http://silentred.github.io/2017/07/18/qiniu-image-handle/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="NightsWatch">
-      <meta itemprop="description" content="Gopher & linuxer">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="寒江夜钓">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/07/18/qiniu-image-handle/" class="post-title-link" itemprop="url">Golang模仿七牛图片处理API</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2017-07-18 15:55:48" itemprop="dateCreated datePublished" datetime="2017-07-18T15:55:48+08:00">2017-07-18</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2019-01-10 14:30:49" itemprop="dateModified" datetime="2019-01-10T14:30:49+08:00">2019-01-10</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tech/" itemprop="url" rel="index"><span itemprop="name">tech</span></a>
-                </span>
-                  , 
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/tech/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Disqus: </span>
-    
-    <a title="disqus" href="/2017/07/18/qiniu-image-handle/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2017/07/18/qiniu-image-handle/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <blockquote>
-<p>之前一直在用qiniu的存储服务，生成图片的缩略图，模糊图，视频的webp，现在需要把存储移到s3上，那么这些图片，视频处理就要自己动手写了，本文梳理一下大致的思路。</p>
+<h1 id="分布式和分布式系统"><a href="#分布式和分布式系统" class="headerlink" title="分布式和分布式系统"></a>分布式和分布式系统</h1><blockquote>
+<p>一堆机器 = 分布式 , 一堆互相协同的机器 = 分布式系统</p>
 </blockquote>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2017/07/18/qiniu-image-handle/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
+<p>paxos的工作, 就是把一堆运行的机器协同起来, 让多个机器成为一个整体系统. 在这个系统中, 每个机器都必须让系统中的状态达成一致, 例如三副本集群如果一个机器上上传了一张图片, 那么另外2台机器上也必须复制这张图片过来, 整个系统才处于一个一致的状态.</p>
+<p>分布式系统的一致性问题最终都归结为分布式存储的一致性. 像aws的对象存储可靠性要求是9~13个9. 而这么高的可靠性都是建立在可靠性没那么高的硬件上的.</p>
+<p>列一个常规数据:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">基础设施的可用性:</span><br><span class="line">- 磁盘 &#x3D; 4% 年损坏率</span><br><span class="line">- 服务器硬件 &gt;&#x3D; 0.1% 年损坏率</span><br><span class="line">- IDC 丢包率 &#x3D; 5% ~ 30%</span><br></pre></td></tr></table></figure>
+
+<p>几乎所有的分布式存储都必须用某种冗余的方式在廉价硬件的基础上搭建高可靠的存储. 而冗余的基础就是多副本策略, 一份数据存多份. 多副本保证了可靠性, 而副本之间的一致, 就需要paxos这类分布式一致性算法来保证.</p>
+<p>甚至单机系统也会采用多副本备份的策略, 例如 纠删码 Erasure Coding 技术，在单机上使用多个硬盘来做冗余，一个例子: RAID。<br>业界的云盘的存储系统，不论是对象存储，或者块存储，都有使用EC技术。</p>
+<blockquote>
+<p>未完待续…</p>
+</blockquote>
+
     </div>
 
     
     
     
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
+          <div class="post-tags">
+              <a href="/tags/pexos/" rel="tag"># pexos</a>
+              <a href="/tags/raft/" rel="tag"># raft</a>
+              <a href="/tags/distributed-system/" rel="tag"># distributed-system</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/03/16/percolator/" rel="prev" title="Percolator 学习笔记">
+      <i class="fa fa-chevron-left"></i> Percolator 学习笔记
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
       </footer>
+    
   </article>
   
   
   
-
-
-  
-  <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
-  </nav>
 
 
 
           </div>
           
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -533,6 +346,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E5%92%8C%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F"><span class="nav-number">1.</span> <span class="nav-text">分布式和分布式系统</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -666,6 +480,26 @@
   }
   // defer loading until the whole page loading is completed
   window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "http://silentred.github.io/2020/11/04/pexos/";
+    this.page.identifier = "2020/11/04/pexos/";
+    this.page.title = "简述Pexos协议";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://silentred.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
 </script>
 
 </body>
